@@ -1,32 +1,56 @@
 [build-system]
-requires = ["setuptools>=68.0"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [project]
 name = "fasthcc"
 version = "0.1.0"
-description = "Fast reader for Telops HCC infrared camera files"
+description = "Fast reader for Telops HCC infrared camera files — reverse-engineered from the binary format, no SDK required"
 license = "MIT"
 requires-python = ">=3.9"
+readme = "README.rst"
 authors = [
     { name = "jasasonc" },
+]
+maintainers = [
+    { name = "jasasonc" },
+]
+keywords = [
+    "telops",
+    "hcc",
+    "infrared",
+    "thermal",
+    "camera",
+    "reader",
+    "numpy",
 ]
 dependencies = [
     "numpy",
 ]
-readme = "README.md"
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Science/Research",
-    "Programming Language :: Python :: 3",
     "Topic :: Scientific/Engineering",
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
 ]
 
 [project.urls]
-Homepage = "https://github.com/jasasonc/fasthcc"
+homepage = "https://github.com/jasasonc/fasthcc"
+source = "https://github.com/jasasonc/fasthcc"
 
 [project.scripts]
 fasthcc = "fasthcc.cli:main"
 
-[tool.setuptools.packages.find]
-where = ["src"]
+[project.optional-dependencies]
+dev = [
+    "pytest",
+]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "src/fasthcc/",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/fasthcc"]
