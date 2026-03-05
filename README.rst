@@ -14,9 +14,9 @@ Licensed under the MIT License.
 Benchmark
 ---------
 
-This is the primary motivation for the package. On a real recording from a Telops FAST M3k camera
-(128×132 resolution, 12,000 frames, 2000 Hz, RT calibration, 392.6 MB HCC file):
+This is the primary motivation for the package. Benchmark results from three examples on real recording from a Telops FAST M3k camera are presented below. The results show a different speedup with fasthcc, depending on whether raw or calibrated data is returned.
 
+Test #1: 128×132 resolution, 12,000 frames, 2000 Hz, RT calibration, 392.6 MB HCC file
 =================================  ========  =========
 Method                             Time      Speedup
 =================================  ========  =========
@@ -25,6 +25,23 @@ Method                             Time      Speedup
 TelopsToolbox                      19.7 s    1× (baseline)
 =================================  ========  =========
 
+Test #2: 320×256 resolution, 6,350 frames, 1000 Hz, RT calibration, 999.9 MB HCC file
+=================================  ========  =========
+Method                             Time      Speedup
+=================================  ========  =========
+``fasthcc`` (raw uint16)           0.67 s    **105×**
+``fasthcc`` (calibrated float32)   2.79 s    **25×**
+TelopsToolbox                      70.9 s    1× (baseline)
+=================================  ========  =========
+
+Test #3: 320×256 resolution, 10,000 frames, 1000 Hz, RT calibration, 1.53 GB HCC file
+=================================  ========  =========
+Method                             Time      Speedup
+=================================  ========  =========
+``fasthcc`` (raw uint16)           0.93 s    **100×**
+``fasthcc`` (calibrated float32)   3.21 s    **24×**
+TelopsToolbox                      93.2 s    1× (baseline)
+=================================  ========  =========
 
 Why fasthcc is faster
 ~~~~~~~~~~~~~~~~~~~~~

@@ -22,8 +22,9 @@ import numpy as np
 # ---------------------------------------------------------------------------
 N_RUNS = 3
 
-HCC_PATH = Path(os.environ.get("BENCH_HCC_PATH", "recording.hcc"))
-REF_NPY_PATH = Path(os.environ.get("BENCH_REF_NPY_PATH", "recording.npy"))
+HCC_PATH = Path(os.environ.get("BENCH_HCC_PATH", r"C:\Users\loren\Documents\UNILJ\OutdoorTSA\Data_preliminary\291_6_hz\_20251007T143858432_20251007T143858950.hcc" \
+""))
+REF_NPY_PATH = Path(os.environ.get("BENCH_REF_NPY_PATH", r"C:\Users\loren\Documents\UNILJ\OutdoorTSA\Data_preliminary\291_6_hz\referenceLC.npy"))
 
 # ---------------------------------------------------------------------------
 # Helpers
