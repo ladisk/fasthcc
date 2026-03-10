@@ -92,6 +92,12 @@ class HCCFile:
 
         self.width = h['Width']
         self.height = h['Height']
+
+        if self.width == 0 or self.height == 0:
+            raise ValueError(
+                f"Invalid image dimensions: {self.width}x{self.height}"
+            )
+
         self.header_version = (h['DeviceXMLMajorVersion'],
                                h['DeviceXMLMinorVersion'])
         self.calibration_mode = h['CalibrationMode']
@@ -102,11 +108,6 @@ class HCCFile:
         # Geometry
         self._header_raw_size = header_raw_size(self.width)
         self._frame_stride = frame_stride(self.width, self.height)
-
-        if self.width == 0 or self.height == 0:
-            raise ValueError(
-                f"Invalid image dimensions: {self.width}x{self.height}"
-            )
 
         self.n_frames = file_size // self._frame_stride
 
@@ -340,17 +341,11 @@ def read_hcc(path, frames=None, metadata=False, calibrated=False, dtype=None):
         if calibrated:
             if dtype is None:
                 dtype = np.float32
-            # Read raw frames for the requested range, then calibrate
-            raw = hcc.read_frames(start=start, stop=stop)
+            # Use to_calibrated() which checks per-frame calibration
+            all_cal = hcc.to_calibrated(dtype=dtype)
+            data = all_cal[start:stop]
             if step is not None and step != 1:
-                raw = raw[::step]
-            # Apply calibration
-            major = hcc.header_version[0]
-            if major >= 10 and hcc.calibration_mode >= 1:
-                scale = 2.0 ** hcc.data_exp
-                data = raw.astype(dtype) * dtype(scale) + dtype(hcc.data_offset)
-            else:
-                data = raw.astype(dtype)
+                data = data[::step].copy()
         else:
             if step is not None and step != 1:
                 # Non-unit step: read all then slice
