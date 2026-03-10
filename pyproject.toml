@@ -36,8 +36,8 @@ classifiers = [
 ]
 
 [project.urls]
-homepage = "https://github.com/jasasonc/fasthcc"
-source = "https://github.com/jasasonc/fasthcc"
+homepage = "https://github.com/ladisk/fasthcc"
+source = "https://github.com/ladisk/fasthcc"
 
 [project.scripts]
 fasthcc = "fasthcc.cli:main"

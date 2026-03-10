@@ -14,7 +14,7 @@ Licensed under the MIT License.
 Benchmark
 ---------
 
-This is the primary motivation for the package. Benchmark results from three examples on real recording from a Telops FAST M3k camera are presented below. The results show a different speedup with fasthcc, depending on whether raw or calibrated data is returned.
+This is the primary motivation for the package. Benchmark results from three examples on real recordings from a Telops FAST M3k camera are presented below. The results show a consistent ~100× speedup for raw reads and ~25× for calibrated reads.
 
 **Test #1:** 128×132 resolution, 12,000 frames, 2000 Hz, RT calibration, 392.6 MB HCC file
 
@@ -49,13 +49,13 @@ TelopsToolbox                      93.2 s    1× (baseline)
 Why fasthcc is faster
 ~~~~~~~~~~~~~~~~~~~~~
 
-**TelopsToolbox** creates 24,000 individual ``np.memmap`` objects (2 per frame: one for the header,
-one for the pixel data). The Python-level loop to instantiate those memmaps takes approximately
-19 seconds on its own, regardless of disk speed.
+**TelopsToolbox** creates two ``np.memmap`` objects per frame (header + pixels) in a Python
+for-loop. For a 12 000-frame file that means 24 000 memmap instantiations — the loop alone
+dominates the total read time, regardless of disk speed.
 
-**fasthcc** memory-maps the entire file as a single numpy structured dtype, extracting all frames
-in one ``np.memmap()`` call. This is effectively zero-copy with no Python-level frame loop, and it
-handles files of any size without loading them entirely into RAM.
+**fasthcc** memory-maps the entire file once using a single numpy structured dtype, extracting
+all frames in one ``np.memmap()`` call. No Python-level frame loop, and files of any size are
+handled without loading them entirely into RAM.
 
 
 Ready-to-use arrays
@@ -68,8 +68,8 @@ flattened pixel data that requires a separate ``form_image(header, ir_data)`` ca
 Correctness
 ~~~~~~~~~~~
 
-fasthcc produces bit-identical output to TelopsToolbox. Verified on 128×132 RT-calibrated recordings:
-raw uint16 values match exactly, and calibrated float32 temperatures match exactly.
+fasthcc produces bit-identical output to TelopsToolbox (raw uint16 exact match, calibrated
+float32 exact match). Verified on RT-calibrated recordings.
 
 
 Installation
@@ -81,7 +81,7 @@ Installation
 
 For development::
 
-    git clone https://github.com/jasasonc/fasthcc.git
+    git clone https://github.com/ladisk/fasthcc.git
     cd fasthcc
     pip install -e ".[dev]"
 
