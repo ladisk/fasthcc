@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "fasthcc"
-version = "0.1.0"
+version = "0.1.1"
 description = "Fast reader for Telops HCC infrared camera files — reverse-engineered from the binary format, no SDK required"
 license = "MIT"
 requires-python = ">=3.9"
