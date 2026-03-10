@@ -95,7 +95,12 @@ def cmd_convert(args: argparse.Namespace) -> None:
     # Determine output dtype
     if args.calibrated:
         if args.dtype == "uint16":
-            dtype = np.float64
+            print(
+                "Warning: --calibrated requires a float dtype, "
+                "using float32 instead of uint16.",
+                file=sys.stderr,
+            )
+            dtype = np.float32
         else:
             dtype = np.dtype(args.dtype).type
     else:

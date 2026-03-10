@@ -21,6 +21,7 @@ Usage::
         hcc.to_npy("output.npy", dtype=np.float32)
 """
 
+import warnings
 from pathlib import Path
 
 import numpy as np
@@ -70,7 +71,7 @@ class HCCFile:
     __slots__ = (
         'path', 'width', 'height', 'n_frames', 'header_version',
         'calibration_mode', 'frame_rate', 'data_offset', 'data_exp',
-        '_raw', '_header_raw_size', '_frame_stride', '_first_header',
+        '_header_raw_size', '_frame_stride', '_first_header',
         '_block_dtype', '_blocks',
     )
 
@@ -110,6 +111,13 @@ class HCCFile:
         self._frame_stride = frame_stride(self.width, self.height)
 
         self.n_frames = file_size // self._frame_stride
+        trailing = file_size % self._frame_stride
+        if trailing:
+            warnings.warn(
+                f"File has {trailing} trailing bytes after {self.n_frames} "
+                f"complete frames (possible truncation)",
+                stacklevel=2,
+            )
 
         if self.n_frames == 0:
             raise ValueError(
@@ -129,9 +137,6 @@ class HCCFile:
             shape=(self.n_frames,),
         )
 
-        # Keep a raw bytes reference for header parsing (memmap as uint8)
-        self._raw = np.memmap(self.path, dtype=np.uint8, mode='r')
-
     # ------------------------------------------------------------------
     # Context manager
     # ------------------------------------------------------------------
@@ -144,13 +149,10 @@ class HCCFile:
         return False
 
     def close(self):
-        """Release the memory-mapped buffers."""
+        """Release the memory-mapped buffer."""
         if self._blocks is not None:
             del self._blocks
             self._blocks = None
-        if self._raw is not None:
-            del self._raw
-            self._raw = None
 
     # ------------------------------------------------------------------
     # Frame access
@@ -200,8 +202,7 @@ class HCCFile:
 
         meta = []
         for i in range(start, stop):
-            offset = i * self._frame_stride
-            hdr_bytes = bytes(self._raw[offset:offset + self._header_raw_size])
+            hdr_bytes = bytes(self._blocks[i]['header'])
             hdr = parse_header(hdr_bytes, offset=0)
             meta.append(hdr)
         return meta
@@ -248,8 +249,7 @@ class HCCFile:
 
         offsets_exps = set()
         for idx in sample_indices:
-            off = idx * self._frame_stride
-            hdr_bytes = bytes(self._raw[off:off + self._header_raw_size])
+            hdr_bytes = bytes(self._blocks[idx]['header'])
             hdr = parse_header(hdr_bytes, offset=0)
             offsets_exps.add((hdr['DataOffset'], hdr['DataExp']))
 
@@ -264,8 +264,7 @@ class HCCFile:
         # Slow path: per-frame calibration
         result = np.empty((n, self.height, self.width), dtype=dtype)
         for i in range(n):
-            off = i * self._frame_stride
-            hdr_bytes = bytes(self._raw[off:off + self._header_raw_size])
+            hdr_bytes = bytes(self._blocks[i]['header'])
             hdr = parse_header(hdr_bytes, offset=0)
             scale = dtype(2.0 ** hdr['DataExp'])
             data_off = dtype(hdr['DataOffset'])
@@ -363,8 +362,7 @@ def read_hcc(path, frames=None, metadata=False, calibrated=False, dtype=None):
             if step is not None and step != 1:
                 meta = []
                 for i in range(start, stop if stop is not None else hcc.n_frames, step):
-                    off = i * hcc._frame_stride
-                    hdr_bytes = bytes(hcc._raw[off:off + hcc._header_raw_size])
+                    hdr_bytes = bytes(hcc._blocks[i]['header'])
                     hdr = parse_header(hdr_bytes, offset=0)
                     meta.append(hdr)
             else:

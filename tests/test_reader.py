@@ -394,7 +394,6 @@ class TestHCCFile:
         hcc = HCCFile(hcc_path)
         hcc.close()
         assert hcc._blocks is None
-        assert hcc._raw is None
 
     def test_read_after_close_raises(self, hcc_path):
         hcc = HCCFile(hcc_path)

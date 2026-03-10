@@ -45,6 +45,7 @@ fasthcc = "fasthcc.cli:main"
 [project.optional-dependencies]
 dev = [
     "pytest",
+    "flake8",
 ]
 
 [tool.hatch.build.targets.sdist]
