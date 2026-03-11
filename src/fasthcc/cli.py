@@ -178,7 +178,7 @@ def main() -> None:
     """Entry point for the fasthcc CLI."""
     parser = argparse.ArgumentParser(
         prog="fasthcc",
-        description="Fast reader for Telops HCC infrared camera files.",
+        description="Fast reader and writer for Telops HCC infrared camera files.",
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
 
