@@ -1,9 +1,9 @@
 fasthcc
 =======
 
-Fast, pure-Python reader for Telops HCC infrared camera files — reverse-engineered directly from the binary format, no SDK or TelopsToolbox required.
+Fast, pure-Python reader and writer for Telops HCC infrared camera files — reverse-engineered directly from the binary format, no SDK or TelopsToolbox required.
 
-``fasthcc`` reads ``.hcc`` files produced by Telops FAST-series IR cameras and returns NumPy arrays.
+``fasthcc`` reads and writes ``.hcc`` files produced by Telops FAST-series IR cameras using NumPy arrays.
 The binary header format (V5–V12) was determined by analysis of the file structure and validated against real camera data.
 It has a single dependency (numpy) and is designed as a drop-in replacement for TelopsToolbox's ``SequenceReaderP``,
 which is slow and has compatibility bugs with numpy 2.x.
@@ -116,6 +116,27 @@ Python API
         subset = hcc.read_frames(0, 100)
         hcc.to_npy("output.npy")
 
+.. code-block:: python
+
+    from fasthcc import write_hcc, HCCWriter
+
+    # Write uint16 frames
+    write_hcc("output.hcc", frames, frame_rate=2000.0)
+
+    # Write calibrated float data (inverse-calibrates to uint16)
+    write_hcc("output.hcc", temps, calibration_mode=2,
+              data_offset=273.15, data_exp=-8)
+
+    # Round-trip: read, modify, write back
+    frames, meta = read_hcc("input.hcc", metadata=True)
+    frames[0] = modify(frames[0])
+    write_hcc("output.hcc", frames, metadata=meta)
+
+    # Streaming writer
+    with HCCWriter("output.hcc", width=320, height=256) as w:
+        for frame in source:
+            w.write_frame(frame)
+
 
 CLI
 ~~~
@@ -152,9 +173,10 @@ where each frame consists of a fixed-size header followed by raw pixel data.
 Limitations
 -----------
 
-- **Read-only.** fasthcc does not support writing HCC files.
 - **Designed for Telops FAST-series cameras.** Other Telops camera models may use header versions
   that require version-specific adjustments.
 - **Memory-mapped I/O.** Files are memory-mapped, so they can exceed available RAM. However,
   operations like ``to_calibrated()`` or ``read_frames()`` that return full numpy arrays will
   allocate output buffers proportional to the number of requested frames.
+- **No calibration blocks.** Written files contain valid headers and pixel data but not embedded
+  NUC calibration tables. Telops software can still display the data.
