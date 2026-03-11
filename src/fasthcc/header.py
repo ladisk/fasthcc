@@ -271,6 +271,128 @@ def parse_header(buf, offset=0):
     return result
 
 
+def build_header(
+    width,
+    height,
+    frame_id=0,
+    data_offset=273.15,
+    data_exp=-8,
+    calibration_mode=2,
+    exposure_time=110.16,
+    frame_rate=2000.0,
+    version=(12, 7),
+    **extra_fields,
+):
+    """Construct a binary HCC frame header.
+
+    Parameters
+    ----------
+    width : int
+        Image width in pixels.
+    height : int
+        Image height in pixels.
+    frame_id : int
+        Frame counter. Default 0.
+    data_offset : float
+        Calibration additive offset. Default 273.15.
+    data_exp : int
+        Calibration exponent. Default -8.
+    calibration_mode : int
+        0 = raw, 1 = NUC, 2 = RT. Default 2.
+    exposure_time : float
+        Exposure time in microseconds. Default 110.16.
+    frame_rate : float
+        Acquisition frame rate in Hz. Default 2000.0.
+    version : tuple[int, int]
+        Header version (major, minor). Default (12, 7).
+    **extra_fields
+        Additional header fields (e.g., POSIXTime, SubSecondTime,
+        TriggerDelay). Unknown field names are silently ignored.
+
+    Returns
+    -------
+    bytes
+        Complete header buffer of size ``header_raw_size(width)``.
+    """
+    if width < 12:
+        raise ValueError(
+            f"width must be >= 12 (header needs at least 48 bytes), got {width}"
+        )
+    major, minor = version
+    hdr_size = header_raw_size(width)
+    buf = bytearray(hdr_size)
+
+    # -- Build prefix values --------------------------------------------------
+    prefix_defaults = {
+        'Signature': b'TC',
+        'DeviceXMLMinorVersion': minor,
+        'DeviceXMLMajorVersion': major,
+        'ImageHeaderLength': hdr_size,
+        'FrameID': frame_id,
+        'DataOffset': float(data_offset),
+        'DataExp': int(data_exp),
+        'ExposureTime': int(round(exposure_time * 100)),
+        'CalibrationMode': int(calibration_mode),
+        'BPRApplied': 0,
+        'FrameBufferMode': 0,
+        'CalibrationBlockIndex': 0,
+        'Width': width,
+        'Height': height,
+        'OffsetX': 0,
+        'OffsetY': 0,
+        'ReverseX': 0,
+        'ReverseY': 0,
+        'TestImageSelector': 0,
+        'SensorWellDepth': 0,
+        'AcquisitionFrameRate': int(round(frame_rate * 1000)),
+    }
+
+    # Apply extra_fields overrides for prefix fields
+    for key in _PREFIX_FIELDS:
+        if key in extra_fields:
+            val = extra_fields[key]
+            if key == 'ExposureTime':
+                val = int(round(val * 100))
+            elif key == 'AcquisitionFrameRate':
+                val = int(round(val * 1000))
+            elif key == 'Signature':
+                if isinstance(val, str):
+                    val = val.encode('ascii')
+            prefix_defaults[key] = val
+
+    prefix_values = tuple(prefix_defaults[k] for k in _PREFIX_FIELDS)
+    _ST_PREFIX.pack_into(buf, 0, *prefix_values)
+
+    # -- Build tail values (V10+) ---------------------------------------------
+    if major in (10, 11):
+        tail_struct, tail_fields = _ST_V10_TAIL, _V10_TAIL_FIELDS
+    elif major == 12 and minor == 0:
+        tail_struct, tail_fields = _ST_V12_0_TAIL, _V12_0_TAIL_FIELDS
+    elif major >= 12:
+        tail_struct, tail_fields = _ST_V12_1_TAIL, _V12_1_TAIL_FIELDS
+    else:
+        tail_struct, tail_fields = None, None
+
+    if (
+        tail_struct is not None
+        and major >= 10
+        and hdr_size >= _ST_PREFIX.size + tail_struct.size
+    ):
+        tail_defaults = {name: 0 for name in tail_fields}
+        for name in tail_fields:
+            if name in extra_fields:
+                tail_defaults[name] = extra_fields[name]
+        # V12.1+ packs TriggerDelay as uint32; coerce float from V10 metadata
+        if tail_struct is _ST_V12_1_TAIL and 'TriggerDelay' in tail_defaults:
+            td = tail_defaults['TriggerDelay']
+            if isinstance(td, float):
+                tail_defaults['TriggerDelay'] = int(round(td))
+        tail_values = tuple(tail_defaults[k] for k in tail_fields)
+        tail_struct.pack_into(buf, _ST_PREFIX.size, *tail_values)
+
+    return bytes(buf)
+
+
 # ---------------------------------------------------------------------------
 # Internal helpers
 # ---------------------------------------------------------------------------

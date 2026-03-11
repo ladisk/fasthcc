@@ -94,7 +94,7 @@ Python API
 
 .. code-block:: python
 
-    from fasthcc import read_hcc, HCCFile
+    from fasthcc import read_hcc, HCCReader
 
     # One-shot read
     frames = read_hcc("recording.hcc")  # (n_frames, height, width) uint16
@@ -110,7 +110,7 @@ Python API
     print(meta[0]["AcquisitionFrameRate"])  # 2000.0
 
     # Class-based access
-    with HCCFile("recording.hcc") as hcc:
+    with HCCReader("recording.hcc") as hcc:
         print(hcc.width, hcc.height, hcc.n_frames)
         print(hcc.frame_rate, hcc.calibration_mode)
         subset = hcc.read_frames(0, 100)

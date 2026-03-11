@@ -80,10 +80,10 @@ print("-" * 50)
 print("[1/3] fasthcc -- raw uint16 read")
 print("-" * 50)
 
-from fasthcc import read_hcc, HCCFile
+from fasthcc import read_hcc, HCCReader
 
 # Quick peek for file info
-with HCCFile(HCC_PATH) as hcc:
+with HCCReader(HCC_PATH) as hcc:
     n_frames = hcc.n_frames
     width = hcc.width
     height = hcc.height

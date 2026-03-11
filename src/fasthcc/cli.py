@@ -7,7 +7,7 @@ from pathlib import Path
 
 import numpy as np
 
-from fasthcc.reader import HCCFile
+from fasthcc.reader import HCCReader
 
 
 def _format_bytes(n_bytes: int) -> str:
@@ -39,7 +39,7 @@ def cmd_info(args: argparse.Namespace) -> None:
         print(f"Error: file not found: {path}", file=sys.stderr)
         sys.exit(1)
 
-    with HCCFile(path) as hcc:
+    with HCCReader(path) as hcc:
         file_size = path.stat().st_size
 
         n_frames = hcc.n_frames
@@ -128,7 +128,7 @@ def cmd_convert(args: argparse.Namespace) -> None:
             continue
 
         t0 = time.perf_counter()
-        with HCCFile(hcc_path) as hcc:
+        with HCCReader(hcc_path) as hcc:
             if not args.quiet:
                 print(
                     f"  {hcc_path.name}: {hcc.width}x{hcc.height}, "

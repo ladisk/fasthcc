@@ -21,7 +21,7 @@ from fasthcc.header import (
     header_raw_size,
     parse_header,
 )
-from fasthcc.reader import HCCFile, read_hcc
+from fasthcc.reader import HCCReader, read_hcc
 from fasthcc.cli import cmd_info, cmd_convert
 
 
@@ -278,48 +278,48 @@ class TestHeaderHelpers:
 
 
 # ======================================================================
-# reader.py — HCCFile tests
+# reader.py — HCCReader tests
 # ======================================================================
 
-class TestHCCFile:
-    """Tests for the HCCFile class."""
+class TestHCCReader:
+    """Tests for the HCCReader class."""
 
     def test_dimensions(self, hcc_path):
-        with HCCFile(hcc_path) as hcc:
+        with HCCReader(hcc_path) as hcc:
             assert hcc.width == 16
             assert hcc.height == 8
             assert hcc.n_frames == 3
 
     def test_version(self, hcc_path):
-        with HCCFile(hcc_path) as hcc:
+        with HCCReader(hcc_path) as hcc:
             assert hcc.header_version == (12, 7)
 
     def test_calibration_mode(self, hcc_path):
-        with HCCFile(hcc_path) as hcc:
+        with HCCReader(hcc_path) as hcc:
             assert hcc.calibration_mode == 2
 
     def test_frame_rate(self, hcc_path):
-        with HCCFile(hcc_path) as hcc:
+        with HCCReader(hcc_path) as hcc:
             assert abs(hcc.frame_rate - 2000.0) < 0.01
 
     def test_data_offset_and_exp(self, hcc_path):
-        with HCCFile(hcc_path) as hcc:
+        with HCCReader(hcc_path) as hcc:
             assert abs(hcc.data_offset - 273.15) < 0.01
             assert hcc.data_exp == -8
 
     def test_read_frames_shape_dtype(self, hcc_path):
-        with HCCFile(hcc_path) as hcc:
+        with HCCReader(hcc_path) as hcc:
             frames = hcc.read_frames()
             assert frames.shape == (3, 8, 16)
             assert frames.dtype == np.uint16
 
     def test_read_frames_values(self, hcc_path):
-        with HCCFile(hcc_path) as hcc:
+        with HCCReader(hcc_path) as hcc:
             frames = hcc.read_frames()
             np.testing.assert_array_equal(frames, 1000)
 
     def test_read_frames_varied(self, hcc_path_varied):
-        with HCCFile(hcc_path_varied) as hcc:
+        with HCCReader(hcc_path_varied) as hcc:
             frames = hcc.read_frames()
             assert frames.shape == (4, 8, 16)
             np.testing.assert_array_equal(frames[0], 100)
@@ -328,21 +328,21 @@ class TestHCCFile:
             np.testing.assert_array_equal(frames[3], 400)
 
     def test_read_frames_slicing(self, hcc_path_varied):
-        with HCCFile(hcc_path_varied) as hcc:
+        with HCCReader(hcc_path_varied) as hcc:
             subset = hcc.read_frames(start=1, stop=3)
             assert subset.shape == (2, 8, 16)
             np.testing.assert_array_equal(subset[0], 200)
             np.testing.assert_array_equal(subset[1], 300)
 
     def test_read_frames_start_only(self, hcc_path_varied):
-        with HCCFile(hcc_path_varied) as hcc:
+        with HCCReader(hcc_path_varied) as hcc:
             subset = hcc.read_frames(start=2)
             assert subset.shape == (2, 8, 16)
             np.testing.assert_array_equal(subset[0], 300)
             np.testing.assert_array_equal(subset[1], 400)
 
     def test_read_metadata(self, hcc_path):
-        with HCCFile(hcc_path) as hcc:
+        with HCCReader(hcc_path) as hcc:
             meta = hcc.read_metadata()
             assert len(meta) == 3
             assert meta[0]["FrameID"] == 0
@@ -351,7 +351,7 @@ class TestHCCFile:
             assert meta[0]["Width"] == 16
 
     def test_read_metadata_sliced(self, hcc_path_varied):
-        with HCCFile(hcc_path_varied) as hcc:
+        with HCCReader(hcc_path_varied) as hcc:
             meta = hcc.read_metadata(start=1, stop=3)
             assert len(meta) == 2
             assert meta[0]["FrameID"] == 1
@@ -359,7 +359,7 @@ class TestHCCFile:
 
     def test_to_calibrated(self, hcc_path):
         """Calibrated = pixel * 2^exp + offset."""
-        with HCCFile(hcc_path) as hcc:
+        with HCCReader(hcc_path) as hcc:
             cal = hcc.to_calibrated()
             assert cal.dtype == np.float32
             assert cal.shape == (3, 8, 16)
@@ -368,13 +368,13 @@ class TestHCCFile:
             np.testing.assert_allclose(cal, expected, rtol=1e-5)
 
     def test_to_calibrated_dtype(self, hcc_path):
-        with HCCFile(hcc_path) as hcc:
+        with HCCReader(hcc_path) as hcc:
             cal = hcc.to_calibrated(dtype=np.float64)
             assert cal.dtype == np.float64
 
     def test_to_npy_uint16(self, hcc_path, tmp_path):
         out = tmp_path / "out.npy"
-        with HCCFile(hcc_path) as hcc:
+        with HCCReader(hcc_path) as hcc:
             hcc.to_npy(out)
         data = np.load(out)
         assert data.shape == (3, 8, 16)
@@ -383,7 +383,7 @@ class TestHCCFile:
 
     def test_to_npy_calibrated(self, hcc_path, tmp_path):
         out = tmp_path / "cal.npy"
-        with HCCFile(hcc_path) as hcc:
+        with HCCReader(hcc_path) as hcc:
             hcc.to_npy(out, dtype=np.float32)
         data = np.load(out)
         assert data.dtype == np.float32
@@ -391,18 +391,18 @@ class TestHCCFile:
         np.testing.assert_allclose(data, expected, rtol=1e-5)
 
     def test_context_manager_closes(self, hcc_path):
-        hcc = HCCFile(hcc_path)
+        hcc = HCCReader(hcc_path)
         hcc.close()
         assert hcc._blocks is None
 
     def test_read_after_close_raises(self, hcc_path):
-        hcc = HCCFile(hcc_path)
+        hcc = HCCReader(hcc_path)
         hcc.close()
         with pytest.raises(RuntimeError, match="closed"):
             hcc.read_frames()
 
     def test_context_manager_exit(self, hcc_path):
-        with HCCFile(hcc_path) as hcc:
+        with HCCReader(hcc_path) as hcc:
             _ = hcc.read_frames()
         # After exiting, internal buffers should be None
         assert hcc._blocks is None
@@ -411,7 +411,7 @@ class TestHCCFile:
         tiny = tmp_path / "tiny.hcc"
         tiny.write_bytes(b"\x00" * 20)
         with pytest.raises(ValueError, match="too small"):
-            HCCFile(tiny)
+            HCCReader(tiny)
 
     def test_no_complete_frames_raises(self, tmp_path):
         """File has a valid header but not enough bytes for one full frame."""
@@ -429,10 +429,10 @@ class TestHCCFile:
         # Write header only -- not enough for a full frame
         path.write_bytes(hdr)
         with pytest.raises(ValueError, match="no complete frames"):
-            HCCFile(path)
+            HCCReader(path)
 
     def test_repr(self, hcc_path):
-        with HCCFile(hcc_path) as hcc:
+        with HCCReader(hcc_path) as hcc:
             r = repr(hcc)
             assert "test.hcc" in r
             assert "3 frames" in r
@@ -624,7 +624,7 @@ class TestEdgeCases:
     """Edge-case and boundary-condition tests."""
 
     def test_single_frame(self, single_frame_hcc):
-        with HCCFile(single_frame_hcc) as hcc:
+        with HCCReader(single_frame_hcc) as hcc:
             assert hcc.n_frames == 1
             frames = hcc.read_frames()
             assert frames.shape == (1, 8, 16)
@@ -648,7 +648,7 @@ class TestEdgeCases:
             # Write only half the pixel data
             f.write(b"\x00" * (w * h))  # half of w*h*2
 
-        with HCCFile(path) as hcc:
+        with HCCReader(path) as hcc:
             assert hcc.n_frames == 2  # truncated frame ignored
             frames = hcc.read_frames()
             assert frames.shape == (2, 8, 16)
@@ -670,7 +670,7 @@ class TestEdgeCases:
             pixel_data=pixel_data,
         )
 
-        with HCCFile(path) as hcc:
+        with HCCReader(path) as hcc:
             frames = hcc.read_frames()
             assert frames.shape == (n, h, w)
             for i in range(n):
@@ -684,7 +684,7 @@ class TestEdgeCases:
             width=w, height=h, n_frames=2,
             pixel_fill=55555,
         )
-        with HCCFile(path) as hcc:
+        with HCCReader(path) as hcc:
             assert hcc.width == 320
             assert hcc.height == 256
             assert hcc.n_frames == 2
@@ -713,14 +713,14 @@ class TestEdgeCases:
             pixel_fill=500,
             n_frames=2,
         )
-        with HCCFile(path) as hcc:
+        with HCCReader(path) as hcc:
             cal = hcc.to_calibrated()
             # Should be plain float cast, no offset/exp applied
             np.testing.assert_allclose(cal, 500.0)
 
     def test_string_path(self, hcc_path):
-        """HCCFile should accept string paths, not just Path objects."""
-        with HCCFile(str(hcc_path)) as hcc:
+        """HCCReader should accept string paths, not just Path objects."""
+        with HCCReader(str(hcc_path)) as hcc:
             assert hcc.n_frames == 3
 
     def test_read_hcc_string_path(self, hcc_path):

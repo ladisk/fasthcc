@@ -14,7 +14,7 @@ Usage::
     temps = read_hcc("recording.hcc", calibrated=True)      # float32 calibrated
 
     # Class-based for repeated access
-    with HCCFile("recording.hcc") as hcc:
+    with HCCReader("recording.hcc") as hcc:
         print(hcc.n_frames, hcc.width, hcc.height)
         subset = hcc.read_frames(start=10, stop=20)
         meta = hcc.read_metadata(start=0, stop=5)
@@ -34,7 +34,7 @@ from .header import (
 )
 
 
-class HCCFile:
+class HCCReader:
     """Fast reader for Telops HCC files.
 
     Uses memory-mapped I/O with numpy structured dtypes for zero-copy
@@ -174,7 +174,7 @@ class HCCFile:
             Shape (n, height, width), dtype uint16.
         """
         if self._blocks is None:
-            raise RuntimeError("HCCFile is closed")
+            raise RuntimeError("HCCReader is closed")
         sliced = self._blocks[start:stop]['pixels']
         return sliced.copy()  # contiguous copy, releases view on raw buffer
 
@@ -194,7 +194,7 @@ class HCCFile:
             One dict per frame with all parsed header fields.
         """
         if self._blocks is None:
-            raise RuntimeError("HCCFile is closed")
+            raise RuntimeError("HCCReader is closed")
 
         if stop is None:
             stop = self.n_frames
@@ -230,7 +230,7 @@ class HCCFile:
             Shape (n_frames, height, width), dtype as specified.
         """
         if self._blocks is None:
-            raise RuntimeError("HCCFile is closed")
+            raise RuntimeError("HCCReader is closed")
 
         major = self.header_version[0]
         if major < 10 or self.calibration_mode < 1:
@@ -298,7 +298,7 @@ class HCCFile:
     def __repr__(self):
         status = 'closed' if self._blocks is None else 'open'
         return (
-            f"HCCFile({self.path.name!r}, {self.n_frames} frames, "
+            f"HCCReader({self.path.name!r}, {self.n_frames} frames, "
             f"{self.width}x{self.height}, "
             f"v{self.header_version[0]}.{self.header_version[1]}, "
             f"cal={self.calibration_mode}, {status})"
@@ -333,7 +333,7 @@ def read_hcc(path, frames=None, metadata=False, calibrated=False, dtype=None):
         If metadata=False: array of shape (N, H, W).
         If metadata=True: (array, list_of_header_dicts).
     """
-    with HCCFile(path) as hcc:
+    with HCCReader(path) as hcc:
         # Determine frame range
         start, stop, step = _resolve_frame_selection(frames, hcc.n_frames)
 
