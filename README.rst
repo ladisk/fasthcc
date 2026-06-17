@@ -1,10 +1,10 @@
 fasthcc
 =======
 
-Fast, pure-Python reader and writer for Telops HCC infrared camera files — no SDK or TelopsToolbox required.
+Fast, pure-Python reader and writer for Telops HCC infrared camera files, with no SDK or TelopsToolbox required.
 
 ``fasthcc`` reads and writes ``.hcc`` files produced by Telops FAST-series IR cameras using NumPy arrays.
-The binary header format (V5–V12) was implemented based on analysis of the file structure and reference documentation shipped with the camera, and validated against real camera data.
+The binary header format (V5-V12) was implemented based on analysis of the file structure and reference documentation shipped with the camera, and validated against real camera data.
 It has a single dependency (numpy) and is designed as a drop-in replacement for TelopsToolbox's ``SequenceReaderP``,
 which is slow and has compatibility bugs with numpy 2.x.
 
@@ -50,7 +50,7 @@ Why fasthcc is faster
 ~~~~~~~~~~~~~~~~~~~~~
 
 **TelopsToolbox** creates two ``np.memmap`` objects per frame (header + pixels) in a Python
-for-loop. For a 12 000-frame file that means 24 000 memmap instantiations — the loop alone
+for-loop. For a 12 000-frame file that means 24 000 memmap instantiations; the loop alone
 dominates the total read time, regardless of disk speed.
 
 **fasthcc** memory-maps the entire file once using a single numpy structured dtype, extracting
@@ -159,7 +159,7 @@ HCC is a binary format used by Telops infrared cameras. Each file contains a seq
 where each frame consists of a fixed-size header followed by raw pixel data.
 
 - **Signature**: The first 2 bytes of each frame header are ``"TC"`` (ASCII).
-- **Version**: Bytes 2–3 encode the minor and major header version numbers. Supported versions
+- **Version**: Bytes 2-3 encode the minor and major header version numbers. Supported versions
   range from 5.x through 12.x.
 - **Frame layout**: Each frame occupies ``header_size + width * height * 2`` bytes, where
   ``header_size = 2 * width * 2`` bytes (two "header lines" worth of uint16 values).
@@ -180,6 +180,16 @@ Limitations
   allocate output buffers proportional to the number of requested frames.
 - **No calibration blocks.** Written files contain valid headers and pixel data but not embedded
   NUC calibration tables. Telops software can still display the data.
+
+
+Related projects
+----------------
+
+- `pyTelops <https://github.com/ladisk/pyTelops>`_: pure-Python control of Telops
+  cameras over GigE Vision (live acquisition, calibration, onboard-buffer recording).
+- `InfraPy <https://github.com/LolloCappo/InfraPy>`_: infrared image processing and
+  analysis (thermography, Thermoelastic Stress Analysis), with support for ``.hcc``
+  and other infrared data.
 
 
 Disclaimer
